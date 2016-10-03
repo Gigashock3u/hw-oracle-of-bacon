@@ -11,7 +11,7 @@ class OracleOfBacon
   class InvalidKeyError < RuntimeError ; end
 
   attr_accessor :from, :to
-  attr_reader :api_key, :response, :uri
+  attr_reader :api_key, :response, :uri, :errors
   
   include ActiveModel::Validations
   validates_presence_of :from
@@ -20,11 +20,14 @@ class OracleOfBacon
   validate :from_does_not_equal_to
 
   def from_does_not_equal_to
-    # YOUR CODE HERE
+    errors.add(:from,:to, message: "Shouldn't be the same") if @from == @to
   end
 
   def initialize(api_key='')
-    # your code here
+    @api_key = "38b99ce9ec87"
+    @errors = ActiveModel::Errors.new(self)
+    @from = "Kevin Bacon"
+    @to = "Kevin Bacon"
   end
 
   def find_connections
@@ -61,8 +64,18 @@ class OracleOfBacon
         parse_error_response
       # your code here: 'elsif' clauses to handle other responses
       # for responses not matching the 3 basic types, the Response
-      # object should have type 'unknown' and data 'unknown response'         
+      # object should have type 'unknown' and data 'unknown response' 
+      elsif ! @doc.xpath('/link').empty?
+        @type = :graph
+        @data = []
+        @doc.xpath('//link').each do |element|
+          @data = element.text.split(/\n\s/)
+        end
       end
+      
+      
+      
+      
     end
     def parse_error_response
       @type = :error
