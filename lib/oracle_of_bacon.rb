@@ -24,10 +24,10 @@ class OracleOfBacon
   end
 
   def initialize(api_key='')
-    @api_key = "38b99ce9ec87"
     @errors = ActiveModel::Errors.new(self)
     @from = "Kevin Bacon"
     @to = "Kevin Bacon"
+    @api_key = api_key
   end
 
   def find_connections
@@ -40,13 +40,16 @@ class OracleOfBacon
       # convert all of these into a generic OracleOfBacon::NetworkError,
       #  but keep the original error message
       # your code here
+      raise NetworkError.new(e.message)
     end
     # your code here: create the OracleOfBacon::Response object
+    OracleOfBacon::Response.new(xml)
   end
 
   def make_uri_from_arguments
     # your code here: set the @uri attribute to properly-escaped URI
     #   constructed from the @from, @to, @api_key arguments
+    @uri = "http://oracleofbacon.org/cgi-bin/xml?p=#{CGI.escape(api_key)}&a=#{CGI.escape(@from)}&b=#{CGI.escape(@to)}"
   end
       
   class Response
@@ -66,20 +69,38 @@ class OracleOfBacon
       # for responses not matching the 3 basic types, the Response
       # object should have type 'unknown' and data 'unknown response' 
       elsif ! @doc.xpath('/link').empty?
-        @type = :graph
-        @data = []
-        @doc.xpath('//link').each do |element|
-          @data = element.text.split(/\n\s/)
-        end
+        parse_link_response
+      elsif ! @doc.xpath('/spellcheck').empty?
+        parse_spellcheck_response
+      else
+        parse_unknown_response
       end
-      
-      
-      
-      
-    end
+  end
+  
     def parse_error_response
       @type = :error
       @data = 'Unauthorized access'
+    end
+  
+    def parse_link_response
+        @type = :graph
+        @data = []
+        @doc.xpath('//link/*').map do |element|
+          @data.push(element.text)
+        end
+    end
+    
+    def parse_spellcheck_response
+      @type = :spellcheck
+      @data = []
+      @doc.xpath('//spellcheck/match').map do |element|
+        @data.push(element.text)
+      end
+    end
+    
+    def parse_unknown_response
+      @type = :unknown
+      @data = "unknown"
     end
   end
 end
